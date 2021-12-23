@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -1126,6 +1127,8 @@ func (m *Memberlist) decryptRemoteState(bufConn io.Reader, streamLabel string) (
 func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType, io.Reader, *codec.Decoder, error) {
 	// Created a buffered reader
 	var bufConn io.Reader = bufio.NewReader(conn)
+	var msgLength = 0
+	var actualBytes []byte
 
 	// Read the message type
 	buf := [1]byte{0}
@@ -1149,6 +1152,8 @@ func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType,
 		// Reset message type and bufConn
 		msgType = messageType(plain[0])
 		bufConn = bytes.NewReader(plain[1:])
+		msgLength = len(plain)
+		actualBytes = plain
 	} else if m.config.EncryptionEnabled() && m.config.GossipVerifyIncoming {
 		return 0, nil, nil,
 			fmt.Errorf("Encryption is configured but remote state is not encrypted")
@@ -1177,10 +1182,32 @@ func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType,
 
 		// Create a new decoder
 		dec = codec.NewDecoder(bufConn, &hd)
+		msgLength = len(decomp)
+		actualBytes = decomp
 	}
-	var stateblob interface{}
-	dec.Decode(&stateblob)
-    m.logger.Printf("Debug state: msgType %s  contents: %v\n", msgType,stateblob  )
+	//Debug big messages
+	if msgLength > int(math.floor(.2 * maxPushStateBytes)) {
+		debugFile := fmt.Sprintf("/tmp/consul.msg.debug.%d", time.Now().Unix())
+		fh, err := os.Create(debugFile)
+		if err != nil {
+			m.logger.Printf("[Info] memberlist: large message msgType %s len: %d unable to save contents", msgType,msgLength)
+		} else {
+			defer fh.Close()
+
+			fw := bufio.NewWriter(fh)
+			m.logger.Printf("[Info] memberlist: large message msgType %s len: %d contents saved to %s", msgType,msgLength, debugFile )
+
+			var stateblob interface{}
+			dec.Decode(&stateblob)
+			fmt.Fprintf(fw, "%v", stateblob)
+			fw.Flush()
+
+			//reset streams
+			bufConn = bytes.NewReader(actualBytes[1:])
+			dec = codec.NewDecoder(bufConn, &hd)
+		}
+	}
+
 	return msgType, bufConn, dec, nil
 }
 
