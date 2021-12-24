@@ -1186,7 +1186,7 @@ func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType,
 		actualBytes = decomp
 	}
 	//Debug big messages
-	if msgLength > int(math.floor(.2 * maxPushStateBytes)) {
+	if msgLength > int(math.Floor(.2 * maxPushStateBytes)) {
 		debugFile := fmt.Sprintf("/tmp/consul.msg.debug.%d", time.Now().Unix())
 		fh, err := os.Create(debugFile)
 		if err != nil {
