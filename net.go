@@ -1206,7 +1206,7 @@ func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType,
 			dec = codec.NewDecoder(bufConn, &hd)
 
 			if msgType == pushPullMsg {
-				_, remoteNodes, userState, err := m.readRemoteState(bufConn, dec)
+				_, remoteNodes, userState, _ := m.readRemoteState(bufConn, dec)
 				fmt.Fprintf(fw, "----Full user state \n")
 				fmt.Fprintf(fw, "%v", userState)
 				fmt.Fprintf(fw, "----Full remoteNode dump\n")
