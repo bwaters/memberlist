@@ -1200,6 +1200,18 @@ func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType,
 			var stateblob interface{}
 			dec.Decode(&stateblob)
 			fmt.Fprintf(fw, "%v", stateblob)
+
+			//reset streams
+			bufConn = bytes.NewReader(actualBytes[1:])
+			dec = codec.NewDecoder(bufConn, &hd)
+
+			if msgType == pushPullMsg {
+				_, remoteNodes, userState, err := m.readRemoteState(bufConn, dec)
+				fmt.Fprintf(fw, "----Full user state \n")
+				fmt.Fprintf(fw, "%v", userState)
+				fmt.Fprintf(fw, "----Full remoteNode dump\n")
+				fmt.Fprintf(fw, "%v", remoteNodes)
+			}
 			fw.Flush()
 
 			//reset streams
