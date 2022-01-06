@@ -66,10 +66,11 @@ type Memberlist struct {
 	nodeTimers map[string]*suspicion // Maps Node.Name -> suspicion timer
 	awareness  *awareness
 
-	tickerLock sync.Mutex
-	tickers    []*time.Ticker
-	stopTick   chan struct{}
-	probeIndex int
+	tickerLock    sync.Mutex
+	tickers       []*time.Ticker
+	stopTick      chan struct{}
+	probeIndex    int
+	probeAllStart time.Time
 
 	ackLock     sync.Mutex
 	ackHandlers map[uint32]*ackHandler
@@ -212,6 +213,7 @@ func newMemberlist(conf *Config) (*Memberlist, error) {
 		ackHandlers:          make(map[uint32]*ackHandler),
 		broadcasts:           &TransmitLimitedQueue{RetransmitMult: conf.RetransmitMult},
 		logger:               logger,
+		probeAllStart:        time.Now(),
 	}
 	m.broadcasts.NumNodes = func() int {
 		return m.estNumNodes()
@@ -663,6 +665,7 @@ func (m *Memberlist) Leave(timeout time.Duration) error {
 			Node:        state.Name,
 			From:        state.Name,
 		}
+		m.logger.Printf("[Info] memberlist: memberlist.leave marking %s as StateLeft", state.Name)
 		m.deadNode(&d)
 
 		// Block until the broadcast goes out

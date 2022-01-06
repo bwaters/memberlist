@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -745,6 +746,7 @@ func (m *Memberlist) handleDead(buf []byte, from net.Addr) {
 		m.logger.Printf("[ERR] memberlist: Failed to decode dead message: %s %s", err, LogAddress(from))
 		return
 	}
+	m.logger.Printf("[Info] memberlist: bw893t DeadMsg received from packethandler")
 	m.deadNode(&d)
 }
 
@@ -1008,6 +1010,20 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 	}
 	m.nodeLock.RUnlock()
 
+	//bw893t clean up old files
+	stateFiles, _ := filepath.Glob("/tmp/consul.state.debug.*")
+	for _, f := range stateFiles {
+		if f[0:len("/tmp/"+debugFile)-1] != "/tmp/"+debugFile {
+			os.Remove(f)
+		}
+	}
+
+	//bw893t Write the outgoing states for one hour
+	debugFile := fmt.Sprintf("consul.state.debug.%d.", time.Now().Unix()/60/60)
+	fh, _ := os.CreateTemp("/tmp", debugFile)
+	defer os.Remove(fh.Name()) // clean up
+	fw := bufio.NewWriter(fh)
+
 	// Get the delegate state
 	var userData []byte
 	if m.config.Delegate != nil {
@@ -1030,10 +1046,13 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 	if err := enc.Encode(&header); err != nil {
 		return err
 	}
+	fmt.Fprintf(fw, "%v\n", header)
+
 	for i := 0; i < header.Nodes; i++ {
 		if err := enc.Encode(&localNodes[i]); err != nil {
 			return err
 		}
+		fmt.Fprintf(fw, "%v\n", localNodes[i])
 	}
 
 	// Write the user state as well
@@ -1041,6 +1060,8 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 		if _, err := bufConn.Write(userData); err != nil {
 			return err
 		}
+		//byte array is mostly strings
+		fmt.Fprintf(fw, "UserData\n%+q", string(userData))
 	}
 
 	// Get the send buffer
@@ -1186,16 +1207,16 @@ func (m *Memberlist) readStream(conn net.Conn, streamLabel string) (messageType,
 		actualBytes = decomp
 	}
 	//Debug big messages
-	if msgLength > int(math.Floor(.2 * maxPushStateBytes)) {
+	if msgLength > int(math.Floor(.2*maxPushStateBytes)) {
 		debugFile := fmt.Sprintf("/tmp/consul.msg.debug.%d", time.Now().Unix())
 		fh, err := os.Create(debugFile)
 		if err != nil {
-			m.logger.Printf("[Info] memberlist: large message msgType %s len: %d unable to save contents", msgType,msgLength)
+			m.logger.Printf("[Info] memberlist: large message msgType %s len: %d unable to save contents", msgType, msgLength)
 		} else {
 			defer fh.Close()
 
 			fw := bufio.NewWriter(fh)
-			m.logger.Printf("[Info] memberlist: large message msgType %s len: %d contents saved to %s", msgType,msgLength, debugFile )
+			m.logger.Printf("[Info] memberlist: large message msgType %s len: %d contents saved to %s", msgType, msgLength, debugFile)
 
 			var stateblob interface{}
 			dec.Decode(&stateblob)

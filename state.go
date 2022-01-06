@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -226,8 +227,12 @@ START:
 	// Handle the wrap around case
 	if m.probeIndex >= len(m.nodes) {
 		m.nodeLock.RUnlock()
+		//bw893t record time to probe all nodes
+		metrics.MeasureSince([]string{"memberlist", "probeAllNodes"}, m.probeAllStart)
+		m.logger.Printf("[Info] memberlist: bw893t finished probing all nodes starting resetNodes")
 		m.resetNodes()
 		m.probeIndex = 0
+		m.probeAllStart = time.Now()
 		numCheck++
 		goto START
 	}
@@ -550,6 +555,7 @@ func (m *Memberlist) resetNodes() {
 	// Move dead nodes, but respect gossip to the dead interval
 	deadIdx := moveDeadNodes(m.nodes, m.config.GossipToTheDeadTime)
 
+	deletedNodes := len(m.nodes) - deadIdx
 	// Deregister the dead nodes
 	for i := deadIdx; i < len(m.nodes); i++ {
 		delete(m.nodeMap, m.nodes[i].Name)
@@ -561,6 +567,7 @@ func (m *Memberlist) resetNodes() {
 
 	// Update numNodes after we've trimmed the dead nodes
 	atomic.StoreUint32(&m.numNodes, uint32(deadIdx))
+	m.logger.Printf("[Info] memberlist: bw893t Purged %s nodes during resetNodes", deletedNodes)
 
 	// Shuffle live nodes
 	shuffleNodes(m.nodes)
@@ -654,7 +661,7 @@ func (m *Memberlist) pushPullNode(a Address, join bool) error {
 	if err != nil {
 		return err
 	}
-
+	m.logger.Printf("[Info] memberlist: PushPull communication with %s", a.String())
 	if err := m.mergeRemoteState(join, remote, userState); err != nil {
 		return err
 	}
@@ -1257,7 +1264,7 @@ func (m *Memberlist) deadNode(d *dead) {
 		// If we are not leaving we need to refute
 		if !m.hasLeft() {
 			m.refute(state, d.Incarnation)
-			m.logger.Printf("[WARN] memberlist: Refuting a dead message (from: %s)", d.From)
+			m.logger.Printf("[WARN] memberlist: Refuting a dead message (from: %s) called by %s", d.From, string(debug.Stack()))
 			return // Do not mark ourself dead
 		}
 
@@ -1277,6 +1284,7 @@ func (m *Memberlist) deadNode(d *dead) {
 	// instead of dead.
 	if d.Node == d.From {
 		state.State = StateLeft
+		m.logger.Printf("[INFO] memberlist: bw893t Added Node %s as StateLeft", d.Node)
 	} else {
 		state.State = StateDead
 	}
@@ -1306,6 +1314,7 @@ func (m *Memberlist) mergeState(remote []pushNodeState) {
 
 		case StateLeft:
 			d := dead{Incarnation: r.Incarnation, Node: r.Name, From: r.Name}
+			m.logger.Printf("[Info] memberlist: bw893t PushPull Merge adding %s to StateLeft", r.Name)
 			m.deadNode(&d)
 		case StateDead:
 			// If the remote node believes a node is dead, we prefer to
