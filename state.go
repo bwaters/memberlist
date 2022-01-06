@@ -215,7 +215,7 @@ func (m *Memberlist) deschedule() {
 func (m *Memberlist) probe() {
 	// Track the number of indexes we've considered probing
 	numCheck := 0
-	m.logger.Printf("[DEBUG] memberlist: bw893t running probe index %d of %d total", m.probeIndex, len(m.nodes))
+	m.logger.Printf("[Info] memberlist: bw893t running probe index %d of %d total", m.probeIndex, len(m.nodes))
 
 START:
 	m.nodeLock.RLock()
@@ -569,7 +569,7 @@ func (m *Memberlist) resetNodes() {
 
 	// Update numNodes after we've trimmed the dead nodes
 	atomic.StoreUint32(&m.numNodes, uint32(deadIdx))
-	m.logger.Printf("[Info] memberlist: bw893t Purged %s nodes during resetNodes", deletedNodes)
+	m.logger.Printf("[Info] memberlist: bw893t Purged %d nodes during resetNodes", deletedNodes)
 
 	// Shuffle live nodes
 	shuffleNodes(m.nodes)
