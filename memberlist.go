@@ -665,7 +665,7 @@ func (m *Memberlist) Leave(timeout time.Duration) error {
 			Node:        state.Name,
 			From:        state.Name,
 		}
-		m.logger.Printf("[Info] memberlist: memberlist.leave marking %s as StateLeft", state.Name)
+		m.logger.Printf("[Info] memberlist: bw893t memberlist.leave marking %s as StateLeft", state.Name)
 		m.deadNode(&d)
 
 		// Block until the broadcast goes out
