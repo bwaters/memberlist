@@ -1012,15 +1012,17 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 
 	//bw893t Write the outgoing states for one hour
 	debugFile := fmt.Sprintf("consul.state.debug.%d.", time.Now().Unix()/60/60)
+
 	fh, _ := os.CreateTemp("/tmp", debugFile)
-	defer os.Remove(fh.Name()) // clean up
+	m.logger.Printf("[Info] bw893t Push State written to %s", fh.Name())
 	fw := bufio.NewWriter(fh)
 
 	//bw893t clean up old files
 	stateFiles, _ := filepath.Glob("/tmp/consul.state.debug.*")
 	for _, f := range stateFiles {
 		if f[0:len("/tmp/"+debugFile)-1] != "/tmp/"+debugFile {
-			os.Remove(f)
+			m.logger.Printf("[Info] memberlist Would have deleted %s", f)
+			//os.Remove(f)
 		}
 	}
 
@@ -1062,6 +1064,7 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 		}
 		//byte array is mostly strings
 		fmt.Fprintf(fw, "UserData\n%+q", string(userData))
+		fw.Flush()
 	}
 
 	// Get the send buffer
