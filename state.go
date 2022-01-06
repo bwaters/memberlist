@@ -661,7 +661,7 @@ func (m *Memberlist) pushPullNode(a Address, join bool) error {
 	if err != nil {
 		return err
 	}
-	m.logger.Printf("[Info] memberlist: PushPull communication with %s", a.String())
+	m.logger.Printf("[Info] memberlist: bw893t PushPull communication with %s. calling mergeRemoteState", a.String())
 	if err := m.mergeRemoteState(join, remote, userState); err != nil {
 		return err
 	}
@@ -1284,7 +1284,7 @@ func (m *Memberlist) deadNode(d *dead) {
 	// instead of dead.
 	if d.Node == d.From {
 		state.State = StateLeft
-		m.logger.Printf("[INFO] memberlist: bw893t Added Node %s as StateLeft", d.Node)
+		m.logger.Printf("[INFO] memberlist: bw893t Added Node %s as StateLeft %s", d.Node, d.From)
 	} else {
 		state.State = StateDead
 	}
@@ -1314,7 +1314,7 @@ func (m *Memberlist) mergeState(remote []pushNodeState) {
 
 		case StateLeft:
 			d := dead{Incarnation: r.Incarnation, Node: r.Name, From: r.Name}
-			m.logger.Printf("[Info] memberlist: bw893t PushPull Merge adding %s to StateLeft", r.Name)
+			m.logger.Printf("[Info] memberlist: bw893t PushPull mergeState adding %s to StateLeft", r.Name)
 			m.deadNode(&d)
 		case StateDead:
 			// If the remote node believes a node is dead, we prefer to
