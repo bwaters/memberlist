@@ -215,6 +215,8 @@ func (m *Memberlist) deschedule() {
 func (m *Memberlist) probe() {
 	// Track the number of indexes we've considered probing
 	numCheck := 0
+	m.logger.Printf("[DEBUG] memberlist: bw893t running probe index %d of %d total", m.probeIndex, len(m.nodes))
+
 START:
 	m.nodeLock.RLock()
 
