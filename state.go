@@ -1123,6 +1123,7 @@ func (m *Memberlist) aliveNode(a *alive, notify chan struct{}, bootstrap bool) {
 		state.Port = a.Port
 		if state.State != StateAlive {
 			state.State = StateAlive
+			m.logger.Printf()
 			state.StateChange = time.Now()
 		}
 	}
@@ -1286,8 +1287,9 @@ func (m *Memberlist) deadNode(d *dead) {
 	// instead of dead.
 	if d.Node == d.From {
 		state.State = StateLeft
-		m.logger.Printf("[INFO] memberlist: bw893t Added Node %s as StateLeft %s", d.Node, d.From)
+		m.logger.Printf("[INFO] memberlist: bw893t Updated Node %s as StateLeft %s", d.Node, d.From)
 	} else {
+		m.logger.Printf("[INFO] memberlist: bw893t Updated Node %s as StateDead (from %s)", d.Node, d.From)
 		state.State = StateDead
 	}
 	state.StateChange = time.Now()

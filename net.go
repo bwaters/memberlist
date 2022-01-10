@@ -1020,8 +1020,9 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 	//bw893t clean up old files
 	stateFiles, _ := filepath.Glob("/tmp/consul.state.debug.*")
 	for _, f := range stateFiles {
+
 		if f[0:len("/tmp/"+debugFile)-1] != "/tmp/"+debugFile {
-			m.logger.Printf("[Info] memberlist Would have deleted %s", f)
+			m.logger.Printf("[Info] memberlist Would have deleted %s because %s is not equal to %s", f, f[0:len("/tmp/"+debugFile)-1,"/tmp/"+debugFile ])
 			//os.Remove(f)
 		}
 	}
