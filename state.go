@@ -1123,7 +1123,6 @@ func (m *Memberlist) aliveNode(a *alive, notify chan struct{}, bootstrap bool) {
 		state.Port = a.Port
 		if state.State != StateAlive {
 			state.State = StateAlive
-			m.logger.Printf()
 			state.StateChange = time.Now()
 		}
 	}

@@ -1022,7 +1022,7 @@ func (m *Memberlist) sendLocalState(conn net.Conn, join bool, streamLabel string
 	for _, f := range stateFiles {
 
 		if f[0:len("/tmp/"+debugFile)-1] != "/tmp/"+debugFile {
-			m.logger.Printf("[Info] memberlist Would have deleted %s because %s is not equal to %s", f, f[0:len("/tmp/"+debugFile)-1,"/tmp/"+debugFile ])
+			m.logger.Printf("[Info] memberlist Would have deleted %s because %s is not equal to %s", f, f[0:len("/tmp/"+debugFile)],"/tmp/"+debugFile)
 			//os.Remove(f)
 		}
 	}
